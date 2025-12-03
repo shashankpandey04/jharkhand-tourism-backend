@@ -39,6 +39,7 @@ A role-based tourism platform backend built with **Node.js**, **Express**, and *
 ---
 
 ## 📂 Project Structure
+```ini
 server/
 ├── src
 │ ├── config/ # DB, Cloudinary, etc.
@@ -54,7 +55,7 @@ server/
 ├── package.json
 ├── .env
 └── README.md
-
+```
 
 ---
 
