@@ -1,80 +1,74 @@
 import express from "express";
-import * as feedbackController from "../controllers/feedback.controller.js";
+import Feedback from "../models/Feedback.js";
 import { authenticate } from "../middleware/auth.js";
-import {
-  authorizeRoles,
-  isAdmin,
-  isApprover,
-} from "../middleware/roles.js";
-import { validateRequest } from "../middleware/validator.js";
-import { feedbackValidations } from "../utils/validation.schemas.js";
 
 const router = express.Router();
 
-// Public routes
-router.post(
-  "/",
-  validateRequest(feedbackValidations.create),
-  feedbackController.createFeedback
-);
+// Get all feedback
+router.get("/", async (req, res) => {
+  try {
+    const feedback = await Feedback.find();
+    res.json(feedback);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Protected routes - User can view their own feedback
-router.get(
-  "/my-feedback",
-  authenticate,
-  feedbackController.getUserFeedback
-);
+// Get feedback by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) return res.status(404).json({ error: "Feedback not found" });
+    res.json(feedback);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Admin/Moderator routes
-router.get(
-  "/",
-  authenticate,
-  isApprover,
-  feedbackController.getAllFeedback
-);
+// Create feedback
+router.post("/", async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
 
-router.get("/:id", authenticate, isApprover, feedbackController.getFeedback);
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: "All fields required" });
+    }
 
-router.put(
-  "/:id/status",
-  authenticate,
-  isApprover,
-  feedbackController.updateFeedbackStatus
-);
+    const feedback = new Feedback({
+      name,
+      email,
+      subject,
+      message,
+      status: "open",
+    });
 
-router.put(
-  "/:id/assign",
-  authenticate,
-  isAdmin,
-  feedbackController.assignFeedback
-);
+    await feedback.save();
+    res.status(201).json(feedback);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/response",
-  authenticate,
-  isApprover,
-  feedbackController.addResponse
-);
+// Update feedback
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const feedback = await Feedback.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.json(feedback);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/notes",
-  authenticate,
-  isApprover,
-  feedbackController.addInternalNotes
-);
-
-router.get(
-  "/admin/stats",
-  authenticate,
-  isAdmin,
-  feedbackController.getFeedbackStats
-);
-
-router.delete(
-  "/:id",
-  authenticate,
-  isAdmin,
-  feedbackController.deleteFeedback
-);
+// Delete feedback
+router.delete("/:id", authenticate, async (req, res) => {
+  try {
+    await Feedback.findByIdAndDelete(req.params.id);
+    res.json({ message: "Feedback deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

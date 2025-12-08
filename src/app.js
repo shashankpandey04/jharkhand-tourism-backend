@@ -6,8 +6,6 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import cookieParser from "cookie-parser";
-
-// Import routes
 import authRoutes from "./routes/auth.js";
 import hotelRoutes from "./routes/hotel.js";
 import reviewRoutes from "./routes/review.js";
@@ -18,17 +16,13 @@ import bookingRoutes from "./routes/booking.js";
 import paymentRoutes from "./routes/payment.js";
 import packageRoutes from "./routes/package.js";
 import roomRoutes from "./routes/room.js";
-
-// Import middleware
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
 
-// Security middleware
 app.use(helmet());
 app.use(compression());
 
-// CORS middleware
 app.use(
   cors({
     origin: process.env.CLIENT_URL || ["http://localhost:5173", "http://localhost:3000"],
@@ -36,23 +30,18 @@ app.use(
   })
 );
 
-// Body parser middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Cookie parser
 app.use(cookieParser());
 
-// Data sanitization against NoSQL injection
 app.use(mongoSanitize());
 
-// Data sanitization against XSS
 app.use(xss());
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -60,7 +49,6 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// Health check route
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -70,7 +58,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/rooms", roomRoutes);
@@ -82,7 +69,6 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/packages", packageRoutes);
 
-// API Documentation
 app.get("/api", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -107,10 +93,8 @@ app.get("/api", (req, res) => {
   });
 });
 
-// 404 handler
 app.use(notFound);
 
-// Error handling middleware (must be last)
 app.use(errorHandler);
 
 export default app;

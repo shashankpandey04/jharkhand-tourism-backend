@@ -1,68 +1,78 @@
 import express from "express";
-import * as reviewController from "../controllers/review.controller.js";
+import Review from "../models/Review.js";
 import { authenticate } from "../middleware/auth.js";
-import {
-  authorizeRoles,
-  isAdmin,
-  isApprover,
-} from "../middleware/roles.js";
-import { validateRequest } from "../middleware/validator.js";
-import { reviewValidations } from "../utils/validation.schemas.js";
 
 const router = express.Router();
 
-// Public routes
-router.get("/:hotelId/reviews", reviewController.getHotelReviews);
+// Get hotel reviews
+router.get("/hotel/:hotelId", async (req, res) => {
+  try {
+    const reviews = await Review.find({ hotel: req.params.hotelId });
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/review/:id", reviewController.getReview);
+// Get review by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const review = await Review.findById(req.params.id);
+    if (!review) return res.status(404).json({ error: "Review not found" });
+    res.json(review);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Protected routes
-router.post(
-  "/",
-  authenticate,
-  validateRequest(reviewValidations.create),
-  reviewController.createReview
-);
+// Create review
+router.post("/", authenticate, async (req, res) => {
+  try {
+    const { title, content, rating, hotel } = req.body;
 
-router.put(
-  "/:id",
-  authenticate,
-  validateRequest(reviewValidations.update),
-  reviewController.updateReview
-);
+    if (!title || !content || !rating || !hotel) {
+      return res.status(400).json({ error: "All fields required" });
+    }
 
-router.delete("/:id", authenticate, reviewController.deleteReview);
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be 1-5" });
+    }
 
-router.post("/:id/helpful", authenticate, reviewController.markHelpful);
+    const review = new Review({
+      title,
+      content,
+      rating,
+      hotel,
+      author: req.userId,
+    });
 
-router.post(
-  "/:id/not-helpful",
-  authenticate,
-  reviewController.markNotHelpful
-);
+    await review.save();
+    res.status(201).json(review);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/user/:userId/reviews", reviewController.getUserReviews);
+// Update review
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const review = await Review.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.json(review);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Moderator routes
-router.get(
-  "/moderator/pending",
-  authenticate,
-  isApprover,
-  reviewController.getPendingReviews
-);
-
-router.put(
-  "/:id/approve",
-  authenticate,
-  isApprover,
-  reviewController.approveReview
-);
-
-router.put(
-  "/:id/reject",
-  authenticate,
-  isApprover,
-  reviewController.rejectReview
-);
+// Delete review
+router.delete("/:id", authenticate, async (req, res) => {
+  try {
+    await Review.findByIdAndDelete(req.params.id);
+    res.json({ message: "Review deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

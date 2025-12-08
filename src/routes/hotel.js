@@ -1,90 +1,75 @@
 import express from "express";
-import * as hotelController from "../controllers/hotel.controller.js";
+import Hotel from "../models/Hotel.js";
 import { authenticate } from "../middleware/auth.js";
-import {
-  authorizeRoles,
-  isAdmin,
-  isApprover,
-} from "../middleware/roles.js";
-import { validateRequest } from "../middleware/validator.js";
-import { hotelValidations } from "../utils/validation.schemas.js";
 
 const router = express.Router();
 
-// Public routes
-router.get(
-  "/",
-  validateRequest(hotelValidations.search),
-  hotelController.getAllHotels
-);
+// Get all hotels
+router.get("/", async (req, res) => {
+  try {
+    const hotels = await Hotel.find();
+    res.json(hotels);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/:id", hotelController.getHotelById);
+// Get hotel by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const hotel = await Hotel.findById(req.params.id);
+    if (!hotel) return res.status(404).json({ error: "Hotel not found" });
+    res.json(hotel);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/featured", hotelController.getFeaturedHotels);
+// Create hotel
+router.post("/", authenticate, async (req, res) => {
+  try {
+    const { name, description, location, pricePerNight, amenities } = req.body;
 
-router.get(
-  "/search/nearby",
-  hotelController.searchNearbyHotels
-);
+    if (!name || !location || !pricePerNight) {
+      return res.status(400).json({ error: "Required fields missing" });
+    }
 
-// Protected routes
-router.post(
-  "/",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  validateRequest(hotelValidations.create),
-  hotelController.createHotel
-);
+    const hotel = new Hotel({
+      name,
+      description,
+      location,
+      pricePerNight,
+      amenities,
+      owner: req.userId,
+    });
 
-router.put(
-  "/:id",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  validateRequest(hotelValidations.update),
-  hotelController.updateHotel
-);
+    await hotel.save();
+    res.status(201).json(hotel);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  hotelController.deleteHotel
-);
+// Update hotel
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.json(hotel);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/images",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  hotelController.uploadHotelImages
-);
-
-router.delete(
-  "/:id/images/:imageId",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  hotelController.deleteHotelImage
-);
-
-router.get(
-  "/owner/my-hotels",
-  authenticate,
-  authorizeRoles("hotel_owner", "admin"),
-  hotelController.getMyHotels
-);
-
-// Moderator/Admin routes
-router.put(
-  "/:id/approve",
-  authenticate,
-  isApprover,
-  hotelController.approveHotel
-);
-
-router.put(
-  "/:id/reject",
-  authenticate,
-  isApprover,
-  hotelController.rejectHotel
-);
+// Delete hotel
+router.delete("/:id", authenticate, async (req, res) => {
+  try {
+    await Hotel.findByIdAndDelete(req.params.id);
+    res.json({ message: "Hotel deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

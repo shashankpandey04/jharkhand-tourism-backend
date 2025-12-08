@@ -1,62 +1,83 @@
 import express from "express";
-import * as placeController from "../controllers/place.controller.js";
+import Place from "../models/Place.js";
 import { authenticate } from "../middleware/auth.js";
-import {
-  authorizeRoles,
-  isAdmin,
-  isApprover,
-} from "../middleware/roles.js";
-import { validateRequest } from "../middleware/validator.js";
-import { placeValidations } from "../utils/validation.schemas.js";
 
 const router = express.Router();
 
-// Public routes
-router.get("/", placeController.getAllPlaces);
+// Get all places
+router.get("/", async (req, res) => {
+  try {
+    const places = await Place.find();
+    res.json(places);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/featured", placeController.getFeaturedPlaces);
+// Get place by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const place = await Place.findById(req.params.id);
+    if (!place) return res.status(404).json({ error: "Place not found" });
+    res.json(place);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/city/:city", placeController.getPlacesByCity);
+// Get places by city
+router.get("/city/:city", async (req, res) => {
+  try {
+    const places = await Place.find({ "location.city": req.params.city });
+    res.json(places);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/search/nearby", placeController.searchNearbyPlaces);
+// Create place
+router.post("/", authenticate, async (req, res) => {
+  try {
+    const { name, description, location, category } = req.body;
 
-router.get("/:identifier", placeController.getPlace);
+    if (!name || !location) {
+      return res.status(400).json({ error: "Name and location required" });
+    }
 
-// Protected routes
-router.post(
-  "/",
-  authenticate,
-  validateRequest(placeValidations.create),
-  placeController.createPlace
-);
+    const place = new Place({
+      name,
+      description,
+      location,
+      category,
+    });
 
-router.put(
-  "/:id",
-  authenticate,
-  validateRequest(placeValidations.update),
-  placeController.updatePlace
-);
+    await place.save();
+    res.status(201).json(place);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.delete("/:id", authenticate, placeController.deletePlace);
+// Update place
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const place = await Place.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.json(place);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/images",
-  authenticate,
-  placeController.uploadPlaceImages
-);
-
-router.delete(
-  "/:id/images/:imageId",
-  authenticate,
-  placeController.deletePlaceImage
-);
-
-// Admin routes
-router.put(
-  "/:id/verify",
-  authenticate,
-  isAdmin,
-  placeController.verifyPlace
-);
+// Delete place
+router.delete("/:id", authenticate, async (req, res) => {
+  try {
+    await Place.findByIdAndDelete(req.params.id);
+    res.json({ message: "Place deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

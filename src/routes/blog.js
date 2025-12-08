@@ -1,89 +1,88 @@
 import express from "express";
-import * as blogController from "../controllers/blog.controller.js";
+import Blog from "../models/Blog.js";
 import { authenticate } from "../middleware/auth.js";
-import {
-  authorizeRoles,
-  isAdmin,
-  isApprover,
-} from "../middleware/roles.js";
-import { validateRequest } from "../middleware/validator.js";
-import { blogValidations } from "../utils/validation.schemas.js";
 
 const router = express.Router();
 
-// Public routes
-router.get("/", blogController.getAllBlogs);
+// Get all blogs
+router.get("/", async (req, res) => {
+  try {
+    const blogs = await Blog.find({ status: "published" });
+    res.json(blogs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/featured", blogController.getFeaturedBlogs);
+// Get blog by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ error: "Blog not found" });
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.get("/:identifier", blogController.getBlog);
+// Create blog
+router.post("/", authenticate, async (req, res) => {
+  try {
+    const { title, content, category } = req.body;
 
-// Protected routes
-router.post(
-  "/",
-  authenticate,
-  authorizeRoles("contributor", "moderator", "admin"),
-  validateRequest(blogValidations.create),
-  blogController.createBlog
-);
+    if (!title || !content) {
+      return res.status(400).json({ error: "Title and content required" });
+    }
 
-router.put(
-  "/:id",
-  authenticate,
-  authorizeRoles("contributor", "moderator", "admin"),
-  validateRequest(blogValidations.update),
-  blogController.updateBlog
-);
+    const blog = new Blog({
+      title,
+      content,
+      category,
+      author: req.userId,
+      status: "draft",
+    });
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorizeRoles("contributor", "moderator", "admin"),
-  blogController.deleteBlog
-);
+    await blog.save();
+    res.status(201).json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/submit",
-  authenticate,
-  authorizeRoles("contributor", "moderator", "admin"),
-  blogController.submitBlogForApproval
-);
+// Update blog
+router.put("/:id", authenticate, async (req, res) => {
+  try {
+    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/like",
-  authenticate,
-  blogController.likeBlog
-);
+// Delete blog
+router.delete("/:id", authenticate, async (req, res) => {
+  try {
+    await Blog.findByIdAndDelete(req.params.id);
+    res.json({ message: "Blog deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-router.post(
-  "/:id/upload-image",
-  authenticate,
-  authorizeRoles("contributor", "moderator", "admin"),
-  blogController.uploadBlogImage
-);
-
-router.get("/user/:userId/blogs", blogController.getUserBlogs);
-
-// Moderator routes
-router.get(
-  "/moderator/pending",
-  authenticate,
-  isApprover,
-  blogController.getPendingBlogs
-);
-
-router.put(
-  "/:id/approve",
-  authenticate,
-  isApprover,
-  blogController.approveBlog
-);
-
-router.put(
-  "/:id/reject",
-  authenticate,
-  isApprover,
-  blogController.rejectBlog
-);
+// Like blog
+router.post("/:id/like", authenticate, async (req, res) => {
+  try {
+    const blog = await Blog.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;
