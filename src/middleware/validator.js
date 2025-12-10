@@ -1,6 +1,5 @@
 import { AppError } from "./errorHandler.js";
 
-// Request validator middleware
 export const validateRequest = (validationSchema) => {
   return (req, res, next) => {
     try {
@@ -15,7 +14,6 @@ export const validateRequest = (validationSchema) => {
       for (const [field, rules] of Object.entries(validationSchema)) {
         const value = dataToValidate[field];
 
-        // Check required
         if (rules.required && (value === undefined || value === null || value === "")) {
           errors[field] = `${field} is required`;
           continue;
@@ -25,7 +23,6 @@ export const validateRequest = (validationSchema) => {
           continue;
         }
 
-        // Check type
         if (rules.type === "email") {
           const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
           if (!emailRegex.test(value)) {
@@ -41,38 +38,31 @@ export const validateRequest = (validationSchema) => {
           errors[field] = `${field} must be a valid ID`;
         }
 
-        // Check minLength
         if (rules.minLength && String(value).length < rules.minLength) {
           errors[field] = `${field} must be at least ${rules.minLength} characters`;
         }
 
-        // Check maxLength
         if (rules.maxLength && String(value).length > rules.maxLength) {
           errors[field] = `${field} cannot exceed ${rules.maxLength} characters`;
         }
 
-        // Check min
         if (rules.min !== undefined && Number(value) < rules.min) {
           errors[field] = `${field} must be at least ${rules.min}`;
         }
 
-        // Check max
         if (rules.max !== undefined && Number(value) > rules.max) {
           errors[field] = `${field} cannot exceed ${rules.max}`;
         }
 
-        // Check pattern
         if (rules.pattern && !rules.pattern.test(String(value))) {
           errors[field] =
             rules.description || `${field} format is invalid`;
         }
 
-        // Check enum
         if (rules.enum && !rules.enum.includes(value)) {
           errors[field] = `${field} must be one of: ${rules.enum.join(", ")}`;
         }
 
-        // Check if arrays match
         if (rules.match && dataToValidate[rules.match] !== value) {
           errors[field] = `${field} does not match ${rules.match}`;
         }

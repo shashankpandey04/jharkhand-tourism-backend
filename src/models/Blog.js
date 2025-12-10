@@ -126,7 +126,7 @@ const blogSchema = new mongoose.Schema(
     },
 
     readTime: {
-      type: Number, // in minutes
+      type: Number,
       default: 5,
     },
 
@@ -141,7 +141,6 @@ const blogSchema = new mongoose.Schema(
   }
 );
 
-// Generate slug from title before saving
 blogSchema.pre("save", function (next) {
   if (this.isModified("title")) {
     this.slug = this.title
@@ -152,7 +151,6 @@ blogSchema.pre("save", function (next) {
       .replace(/-+/g, "-");
   }
 
-  // Calculate read time (roughly 200 words per minute)
   if (this.isModified("content")) {
     const wordCount = this.content.split(/\s+/).length;
     this.readTime = Math.ceil(wordCount / 200);

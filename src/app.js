@@ -7,15 +7,11 @@ import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
-import hotelRoutes from "./routes/hotel.js";
 import reviewRoutes from "./routes/review.js";
 import blogRoutes from "./routes/blog.js";
 import placeRoutes from "./routes/place.js";
 import feedbackRoutes from "./routes/feedback.js";
-import bookingRoutes from "./routes/booking.js";
-import paymentRoutes from "./routes/payment.js";
-import packageRoutes from "./routes/package.js";
-import roomRoutes from "./routes/room.js";
+import adminRoutes from "./routes/admin.js";
 import { errorHandler, notFound } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -59,15 +55,11 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/hotels", hotelRoutes);
-app.use("/api/rooms", roomRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/places", placeRoutes);
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api/bookings", bookingRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/packages", packageRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api", (req, res) => {
   res.status(200).json({
@@ -76,7 +68,6 @@ app.get("/api", (req, res) => {
     version: "1.0.0",
     endpoints: {
       auth: "/api/auth",
-      hotels: "/api/hotels",
       rooms: "/api/rooms",
       bookings: "/api/bookings",
       payments: "/api/payments",

@@ -4,7 +4,6 @@ import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get all hotels
 router.get("/", async (req, res) => {
   try {
     const hotels = await Hotel.find();
@@ -14,7 +13,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get hotel by ID
 router.get("/:id", async (req, res) => {
   try {
     const hotel = await Hotel.findById(req.params.id);
@@ -25,7 +23,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Create hotel
 router.post("/", authenticate, async (req, res) => {
   try {
     const { name, description, location, pricePerNight, amenities } = req.body;
@@ -50,7 +47,6 @@ router.post("/", authenticate, async (req, res) => {
   }
 });
 
-// Update hotel
 router.put("/:id", authenticate, async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, {
@@ -62,7 +58,6 @@ router.put("/:id", authenticate, async (req, res) => {
   }
 });
 
-// Delete hotel
 router.delete("/:id", authenticate, async (req, res) => {
   try {
     await Hotel.findByIdAndDelete(req.params.id);

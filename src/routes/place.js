@@ -7,8 +7,41 @@ const router = express.Router();
 // Get all places
 router.get("/", async (req, res) => {
   try {
-    const places = await Place.find();
-    res.json(places);
+    const { page = 1, limit = 12, category, city, search } = req.query;
+    const query = {};
+
+    // Filter by category
+    if (category) {
+      query.category = category;
+    }
+
+    // Filter by city
+    if (city) {
+      query["location.city"] = { $regex: city, $options: "i" };
+    }
+
+    // Search by name or description
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const places = await Place.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await Place.countDocuments(query);
+
+    res.json({
+      places,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

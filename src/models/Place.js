@@ -42,6 +42,7 @@ const placeSchema = new mongoose.Schema(
         },
         coordinates: {
           type: [Number], // [longitude, latitude]
+          default: [0, 0],
         },
       },
     },

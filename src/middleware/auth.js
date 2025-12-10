@@ -37,49 +37,6 @@ export const authenticate = (req, res, next) => {
   }
 };
 
-export const refreshToken = (req, res) => {
-  try {
-    const refreshToken = req.cookies?.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({
-        success: false,
-        message: "No refresh token provided.",
-      });
-    }
-
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
-    const newToken = jwt.sign(
-      {
-        id: decoded.id,
-        email: decoded.email,
-        role: decoded.role,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.cookie("authToken", newToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Token refreshed successfully",
-      token: newToken,
-    });
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid refresh token",
-    });
-  }
-};
-
 export const generateTokens = (userId, email, role) => {
   const accessToken = jwt.sign(
     {

@@ -39,7 +39,7 @@ router.post("/", async (req, res) => {
       email,
       subject,
       message,
-      status: "open",
+      status: "new",
     });
 
     await feedback.save();
